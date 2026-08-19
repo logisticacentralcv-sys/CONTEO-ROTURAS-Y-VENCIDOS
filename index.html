@@ -1,722 +1,249 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>Clasificación de Mercadería</title>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --green: #16a34a;
+      --orange: #ea580c;
+      --red: #dc2626;
+      --purple: #7c3aed;
+      --bg: #f3f4f6;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #e5e7eb;
     }
-
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    button { outline: none; font-family: inherit; }
     body {
+      margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #f0f2f5;
-      color: #111827;
-      padding-bottom: 40px;
-      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      padding-bottom: 30px;
     }
-
     header {
-      background: linear-gradient(135deg, #1e293b, #0f172a);
+      background: var(--primary);
       color: white;
       padding: 16px 20px;
       position: sticky;
       top: 0;
-      z-index: 30;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      z-index: 10;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
+    header h1 { margin: 0; font-size: 18px; font-weight: 600; }
+    header p { margin: 2px 0 0; font-size: 12px; opacity: 0.85; }
 
-    header h1 {
-      font-size: 20px;
-      font-weight: 700;
-      letter-spacing: -0.5px;
-    }
-
-    header p {
-      font-size: 13px;
-      opacity: 0.8;
-      margin-top: 2px;
-    }
-
-    .container {
-      max-width: 500px;
-      margin: 0 auto;
-      padding: 16px;
-    }
-
+    .container { padding: 16px; }
     .card {
-      background: white;
-      border-radius: 16px;
-      padding: 16px 18px;
+      background: var(--card);
+      border-radius: 14px;
+      padding: 16px;
       margin-bottom: 14px;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
     }
 
-    .card-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: #6b7280;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 10px;
-    }
+    #reader { width: 100%; border-radius: 12px; overflow: hidden; }
 
-    .search-row {
-      display: flex;
-      gap: 8px;
-      position: relative;
+    .btn {
+      display: block; width: 100%; padding: 14px; border: none; border-radius: 12px;
+      font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px;
     }
-
-    .search-row input {
-      flex: 1;
-      padding: 12px 14px;
-      border: 2px solid #e5e7eb;
-      border-radius: 12px;
-      font-size: 16px;
-      background: #fafafa;
-      transition: border-color 0.2s;
-    }
-
-    .search-row input:focus {
-      border-color: #2563eb;
-      outline: none;
-      background: white;
-    }
-
-    .search-row .btn {
-      padding: 12px 18px;
-      border: none;
-      border-radius: 12px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      background: #2563eb;
-      color: white;
-      white-space: nowrap;
-      transition: background 0.2s, transform 0.1s;
-    }
-
-    .search-row .btn:active {
-      transform: scale(0.96);
-    }
-
-    .sugerencias {
-      display: none;
-      position: absolute;
-      top: calc(100% + 4px);
-      left: 0;
-      right: 0;
-      background: white;
-      border: 2px solid #e5e7eb;
-      border-radius: 12px;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-      max-height: 260px;
-      overflow-y: auto;
-      z-index: 40;
-    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-secondary { background: #e5e7eb; color: var(--text); }
+    .btn-success { background: var(--green); color: white; }
+    .btn:disabled { opacity: 0.5; }
 
     .sugerencia-item {
-      padding: 10px 14px;
-      border-bottom: 1px solid #f3f4f6;
-      cursor: pointer;
-      transition: background 0.15s;
+      padding: 10px 12px; cursor: pointer; border-bottom: 1px solid var(--border); font-size: 14px;
+    }
+    .sugerencia-item:last-child { border-bottom: none; }
+    .sugerencia-item:active { background: #f3f4f6; }
+    .sugerencia-item .sug-nombre { font-weight: 600; }
+    .sugerencia-item .sug-codigo { color: var(--muted); font-size: 12px; font-family: monospace; }
+
+    .producto-box { display: none; }
+    .producto-box.show { display: block; }
+    .producto-nombre { font-size: 18px; font-weight: 700; margin-bottom: 2px; }
+    .producto-codigo { font-size: 13px; color: var(--muted); font-family: monospace; margin-bottom: 10px; }
+    .no-encontrado { color: var(--orange); font-weight: 600; }
+    .bulto-badge {
+      display: inline-block; background: #fef3c7; color: #92400e; border: 1px solid #fde68a;
+      border-radius: 8px; padding: 5px 10px; font-size: 12px; font-weight: 700; margin-bottom: 10px;
     }
 
-    .sugerencia-item:active {
-      background: #eff6ff;
+    .field { margin-bottom: 12px; }
+    .field label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+    .field input, .field textarea {
+      width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 10px; font-size: 16px; font-family: inherit;
     }
-
-    .sugerencia-item .sug-nombre {
-      font-weight: 600;
-      font-size: 14px;
-    }
-
-    .sugerencia-item .sug-codigo {
-      font-size: 12px;
-      color: #6b7280;
-      font-family: monospace;
-    }
-
-    .sugerencia-item:last-child {
-      border-bottom: none;
-    }
-
-    .resultado-box {
-      display: none;
-    }
-
-    .resultado-box.show {
-      display: block;
-    }
-
-    .resultado-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-
-    .resultado-nombre {
-      font-size: 18px;
-      font-weight: 700;
-      line-height: 1.3;
-    }
-
-    .resultado-nombre.no-encontrado {
-      color: #dc2626;
-    }
-
-    .resultado-codigo {
-      font-size: 13px;
-      color: #6b7280;
-      font-family: monospace;
-      background: #f3f4f6;
-      padding: 2px 10px;
-      border-radius: 6px;
-      display: inline-block;
-      margin-top: 2px;
-    }
-
-    .categoria-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin: 14px 0 12px;
-    }
-
-    .categoria-btn {
-      padding: 12px 8px;
-      border: 2px solid #e5e7eb;
-      border-radius: 12px;
-      background: white;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s;
-      text-align: center;
-    }
-
-    .categoria-btn:active {
-      transform: scale(0.96);
-    }
-
-    .categoria-btn .emoji {
-      font-size: 20px;
-      display: block;
-      margin-bottom: 2px;
-    }
-
-    .categoria-btn.seleccionada {
-      border-color: #2563eb;
-      background: #eff6ff;
-      box-shadow: 0 0 0 2px #bfdbfe;
-    }
-
-    .categoria-btn.seleccionada.roto {
-      border-color: #dc2626;
-      background: #fef2f2;
-      box-shadow: 0 0 0 2px #fecaca;
-    }
-
-    .categoria-btn.seleccionada.vencido {
-      border-color: #f59e0b;
-      background: #fffbeb;
-      box-shadow: 0 0 0 2px #fde68a;
-    }
-
-    .categoria-btn.seleccionada.cambio {
-      border-color: #8b5cf6;
-      background: #f5f3ff;
-      box-shadow: 0 0 0 2px #ddd6fe;
-    }
-
-    .categoria-btn.seleccionada.comedor {
-      border-color: #059669;
-      background: #ecfdf5;
-      box-shadow: 0 0 0 2px #a7f3d0;
-    }
-
-    .categoria-btn .label {
-      font-size: 12px;
-      color: #6b7280;
-      font-weight: 400;
-      display: block;
-      margin-top: 2px;
-    }
-
-    .field {
-      margin-bottom: 12px;
-    }
-
-    .field label {
-      display: block;
-      font-size: 13px;
-      font-weight: 600;
-      color: #6b7280;
-      margin-bottom: 4px;
-    }
-
-    .field input,
-    .field textarea {
-      width: 100%;
-      padding: 10px 14px;
-      border: 2px solid #e5e7eb;
-      border-radius: 10px;
-      font-size: 15px;
-      font-family: inherit;
-      background: #fafafa;
-      transition: border-color 0.2s;
-    }
-
-    .field input:focus,
-    .field textarea:focus {
-      border-color: #2563eb;
-      outline: none;
-      background: white;
-    }
-
-    .field textarea {
-      resize: vertical;
-      min-height: 60px;
-    }
-
-    .btn-guardar {
-      width: 100%;
-      padding: 14px;
-      border: none;
-      border-radius: 12px;
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
-      background: #16a34a;
-      color: white;
-      transition: background 0.2s, transform 0.1s;
-      margin-top: 4px;
-    }
-
-    .btn-guardar:active {
-      transform: scale(0.97);
-    }
-
-    .btn-guardar:disabled {
-      opacity: 0.5;
-      transform: none;
-    }
-
-    .btn-guardar.roto {
-      background: #dc2626;
-    }
-
-    .btn-guardar.vencido {
-      background: #f59e0b;
-    }
-
-    .btn-guardar.cambio {
-      background: #7c3aed;
-    }
-
-    .btn-guardar.comedor {
-      background: #059669;
-    }
-
-    .btn-descartar {
-      width: 100%;
-      padding: 12px;
-      border: none;
-      border-radius: 12px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      background: #f3f4f6;
-      color: #6b7280;
-      transition: background 0.2s;
-      margin-top: 8px;
-    }
-
-    .btn-descartar:active {
-      background: #e5e7eb;
-    }
-
-    .btn-escaneo {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 12px;
-      border: 2px dashed #2563eb;
-      border-radius: 12px;
-      background: #eff6ff;
-      color: #2563eb;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      width: 100%;
-      transition: background 0.2s;
-      margin-top: 10px;
-    }
-
-    .btn-escaneo:active {
-      background: #dbeafe;
-    }
-
-    .btn-escaneo .icon {
-      font-size: 22px;
-    }
-
-    #reader-container {
-      display: none;
-      margin-top: 12px;
-      border-radius: 12px;
-      overflow: hidden;
-    }
-
-    #reader-container video {
-      border-radius: 12px;
-    }
-
-    .btn-cancelar-scan {
-      display: none;
-      width: 100%;
-      padding: 10px;
-      border: none;
-      border-radius: 10px;
-      background: #f3f4f6;
-      color: #6b7280;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      margin-top: 8px;
-    }
-
-    .btn-cancelar-scan:active {
-      background: #e5e7eb;
-    }
-
-    .historial-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 0;
-      border-bottom: 1px solid #f3f4f6;
-      gap: 10px;
-    }
-
-    .historial-item:last-child {
-      border-bottom: none;
-    }
-
-    .historial-item .h-info {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .historial-item .h-nombre {
-      font-weight: 600;
-      font-size: 14px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .historial-item .h-detalle {
-      font-size: 12px;
-      color: #6b7280;
-    }
-
-    .historial-item .h-categoria {
-      font-size: 12px;
-      font-weight: 700;
-      padding: 2px 10px;
-      border-radius: 20px;
-      white-space: nowrap;
+    .field textarea { resize: vertical; min-height: 60px; }
+    .qty-row { display: flex; align-items: center; gap: 8px; }
+    .qty-row input { text-align: center; font-size: 20px; font-weight: 700; }
+    .qty-btn {
+      width: 46px; height: 46px; border-radius: 10px; border: none;
+      background: var(--primary); color: white; font-size: 22px; font-weight: 700; cursor: pointer;
       flex-shrink: 0;
     }
 
-    .historial-item .h-categoria.roto {
-      background: #fef2f2;
-      color: #dc2626;
+    .categorias-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
     }
+    .cat-btn {
+      padding: 14px 8px; border-radius: 12px; border: 2px solid var(--border); background: white;
+      font-size: 14px; font-weight: 700; cursor: pointer; text-align: center; color: var(--text);
+    }
+    .cat-btn.roto { }
+    .cat-btn.selected.roto { border-color: var(--red); background: #fef2f2; color: var(--red); }
+    .cat-btn.selected.vencido { border-color: var(--orange); background: #fff7ed; color: var(--orange); }
+    .cat-btn.selected.cambio { border-color: var(--primary); background: #eff6ff; color: var(--primary-dark); }
+    .cat-btn.selected.comedor { border-color: var(--green); background: #f0fdf4; color: var(--green); }
 
-    .historial-item .h-categoria.vencido {
-      background: #fffbeb;
-      color: #f59e0b;
+    .badge-cat {
+      display: inline-block; border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 700;
     }
+    .badge-cat.roto { background: #fef2f2; color: var(--red); }
+    .badge-cat.vencido { background: #fff7ed; color: var(--orange); }
+    .badge-cat.cambio { background: #eff6ff; color: var(--primary-dark); }
+    .badge-cat.comedor { background: #f0fdf4; color: var(--green); }
 
-    .historial-item .h-categoria.cambio {
-      background: #f5f3ff;
-      color: #7c3aed;
+    .session-item {
+      padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px;
     }
+    .session-item:last-child { border-bottom: none; }
+    .session-item .fila-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .session-item .nombre { font-weight: 600; }
+    .session-item .detalle { color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .session-item .cant { font-weight: 700; color: var(--primary); white-space: nowrap; }
 
-    .historial-item .h-categoria.comedor {
-      background: #ecfdf5;
-      color: #059669;
-    }
-
-    .historial-vacio {
-      color: #6b7280;
-      font-size: 14px;
-      text-align: center;
-      padding: 20px 0;
-    }
-
-    .badge-count {
-      background: #e5e7eb;
-      color: #374151;
-      font-size: 12px;
-      font-weight: 600;
-      padding: 2px 10px;
-      border-radius: 20px;
-    }
+    .empty-state { color: var(--muted); font-size: 14px; text-align: center; padding: 20px 0; }
 
     .toast {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #111827;
-      color: white;
-      padding: 12px 24px;
-      border-radius: 12px;
-      font-size: 14px;
-      font-weight: 600;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s;
-      z-index: 100;
-      max-width: 90%;
-      text-align: center;
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: var(--green); color: white; padding: 12px 20px; border-radius: 10px;
+      font-size: 14px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 100; max-width: 90%; text-align: center;
     }
+    .toast.show { opacity: 1; }
+    .toast.error { background: var(--red); }
 
-    .toast.show {
-      opacity: 1;
+    .spinner {
+      border: 3px solid var(--border); border-top: 3px solid var(--primary); border-radius: 50%;
+      width: 20px; height: 20px; animation: spin 0.8s linear infinite; display: inline-block; vertical-align: middle;
     }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    .toast.error {
-      background: #dc2626;
-    }
-
-    .toast.success {
-      background: #16a34a;
-    }
-
-    html {
-      scroll-behavior: smooth;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      body {
-        background: #0f172a;
-        color: #e5e7eb;
-      }
-      .card {
-        background: #1e293b;
-      }
-      .search-row input,
-      .field input,
-      .field textarea {
-        background: #334155;
-        border-color: #475569;
-        color: #e5e7eb;
-      }
-      .search-row input:focus,
-      .field input:focus,
-      .field textarea:focus {
-        background: #1e293b;
-        border-color: #60a5fa;
-      }
-      .sugerencias {
-        background: #1e293b;
-        border-color: #475569;
-      }
-      .sugerencia-item {
-        border-bottom-color: #334155;
-      }
-      .sugerencia-item .sug-nombre {
-        color: #e5e7eb;
-      }
-      .sugerencia-item:active {
-        background: #334155;
-      }
-      .resultado-codigo {
-        background: #334155;
-        color: #94a3b8;
-      }
-      .categoria-btn {
-        background: #1e293b;
-        border-color: #475569;
-        color: #e5e7eb;
-      }
-      .categoria-btn.seleccionada {
-        background: #334155;
-        border-color: #60a5fa;
-      }
-      .categoria-btn.seleccionada.roto {
-        border-color: #ef4444;
-        background: #3f1f1f;
-      }
-      .categoria-btn.seleccionada.vencido {
-        border-color: #f59e0b;
-        background: #3f2f0f;
-      }
-      .categoria-btn.seleccionada.cambio {
-        border-color: #8b5cf6;
-        background: #2f1f4f;
-      }
-      .categoria-btn.seleccionada.comedor {
-        border-color: #059669;
-        background: #0f3f2a;
-      }
-      .btn-escaneo {
-        background: #1e293b;
-        border-color: #60a5fa;
-        color: #60a5fa;
-      }
-      .btn-escaneo:active {
-        background: #334155;
-      }
-      .btn-descartar {
-        background: #1e293b;
-        color: #94a3b8;
-      }
-      .btn-descartar:active {
-        background: #334155;
-      }
-      .historial-item {
-        border-bottom-color: #334155;
-      }
-      .historial-item .h-detalle {
-        color: #94a3b8;
-      }
-      .badge-count {
-        background: #334155;
-        color: #94a3b8;
-      }
-      .historial-vacio {
-        color: #94a3b8;
-      }
-      .card-title {
-        color: #94a3b8;
-      }
-      .field label {
-        color: #94a3b8;
-      }
-      .categoria-btn .label {
-        color: #94a3b8;
-      }
-      header {
-        background: #0f172a;
-      }
-      .toast {
-        background: #1e293b;
-        color: #e5e7eb;
-      }
-      .toast.error {
-        background: #7f1d1d;
-      }
-      .toast.success {
-        background: #065f46;
-      }
+    .config-warning {
+      background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; border-radius: 10px;
+      padding: 10px 12px; font-size: 12px; margin-bottom: 14px;
     }
   </style>
 </head>
 <body>
 
   <header>
-    <h1>📋 Clasificación de Mercadería</h1>
-    <p>Roto · Vencido · Con cambio · Comedor</p>
+    <h1>🗂 Clasificación de Mercadería</h1>
+    <p>Roto · Vencido · Cambio · Comedor</p>
   </header>
 
   <div class="container">
 
+    <div class="config-warning" id="configWarning" style="display:none;"></div>
+
     <!-- BÚSQUEDA -->
     <div class="card">
-      <div class="card-title">🔍 Buscar producto</div>
-      <div class="search-row">
-        <input type="text" id="inputBusqueda" placeholder="Código o descripción..." autocomplete="off" />
-        <button class="btn" id="btnBuscar">Buscar</button>
+      <button class="btn btn-primary" id="btnEscanear">📷 Escanear código de barras</button>
+      <div id="reader" style="display:none; margin-top: 12px;"></div>
+      <button class="btn btn-secondary" id="btnCancelarScan" style="display:none;">Cancelar escaneo</button>
+
+      <div style="display:flex; align-items:center; gap:8px; margin: 14px 0 6px;">
+        <div style="flex:1; height:1px; background:var(--border);"></div>
+        <span style="font-size:12px; color:var(--muted);">o escribí código / nombre del producto</span>
+        <div style="flex:1; height:1px; background:var(--border);"></div>
       </div>
-      <div class="sugerencias" id="sugerencias"></div>
-      <button class="btn-escaneo" id="btnEscanear">
-        <span class="icon">📷</span> Escanear código de barras
-      </button>
-      <div id="reader-container"></div>
-      <button class="btn-cancelar-scan" id="btnCancelarScan">Cancelar escaneo</button>
+      <div style="display:flex; gap:8px; position:relative;">
+        <input type="text" id="inputCodigoManual" placeholder="Código EAN o nombre del producto" autocomplete="off"
+          style="flex:1; padding:12px; border:1px solid var(--border); border-radius:10px; font-size:16px;">
+        <button class="btn btn-secondary" id="btnBuscarManual" style="width:auto; margin-top:0; padding:12px 18px;">Buscar</button>
+        <div id="sugerenciasManual" style="display:none; position:absolute; top:100%; left:0; right:60px; margin-top:4px; background:white; border:1px solid var(--border); border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,0.12); max-height:280px; overflow-y:auto; z-index:20;"></div>
+      </div>
+      <div style="font-size:11px; color:var(--muted); margin-top:6px;">La búsqueda por nombre encuentra lo que <strong>empieza con</strong> lo que escribís.</div>
     </div>
 
-    <!-- RESULTADO -->
-    <div class="card resultado-box" id="resultadoBox">
-      <div class="resultado-header">
-        <div>
-          <div class="resultado-nombre" id="rNombre">Producto</div>
-          <div class="resultado-codigo" id="rCodigo">Código</div>
-        </div>
-      </div>
+    <!-- PRODUCTO ENCONTRADO / FORMULARIO -->
+    <div class="card producto-box" id="productoBox">
+      <div class="producto-codigo" id="pCodigo"></div>
+      <div class="producto-nombre" id="pNombre"></div>
+      <div id="pBultoBadge" class="bulto-badge" style="display:none;"></div>
 
-      <div class="categoria-grid">
-        <button class="categoria-btn" data-categoria="roto">
-          <span class="emoji">💔</span> Roto
-          <span class="label">Producto dañado</span>
-        </button>
-        <button class="categoria-btn" data-categoria="vencido">
-          <span class="emoji">⏰</span> Vencido
-          <span class="label">Fuera de fecha</span>
-        </button>
-        <button class="categoria-btn" data-categoria="cambio">
-          <span class="emoji">🔄</span> Con cambio
-          <span class="label">Cambio de embalaje</span>
-        </button>
-        <button class="categoria-btn" data-categoria="comedor">
-          <span class="emoji">🍽️</span> Comedor
-          <span class="label">Enviar a comedor</span>
-        </button>
+      <div class="field" id="nombreManualField" style="display:none;">
+        <label>Nombre del producto (no está en el catálogo)</label>
+        <input type="text" id="inputNombreManual" placeholder="Escribí el nombre">
       </div>
 
       <div class="field">
-        <label>Cantidad de unidades</label>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <button id="btnCantMenos" style="width:44px;height:44px;border:none;border-radius:10px;background:#e5e7eb;font-size:22px;font-weight:700;cursor:pointer;">−</button>
-          <input type="number" id="inputCantidad" value="1" min="1" style="flex:1;text-align:center;font-size:18px;font-weight:700;padding:10px;border:2px solid #e5e7eb;border-radius:10px;background:#fafafa;">
-          <button id="btnCantMas" style="width:44px;height:44px;border:none;border-radius:10px;background:#e5e7eb;font-size:22px;font-weight:700;cursor:pointer;">+</button>
+        <label>Categoría</label>
+        <div class="categorias-grid">
+          <button type="button" class="cat-btn roto" data-cat="roto">💥 Roto</button>
+          <button type="button" class="cat-btn vencido" data-cat="vencido">⏰ Vencido</button>
+          <button type="button" class="cat-btn cambio" data-cat="cambio">🔄 Cambio</button>
+          <button type="button" class="cat-btn comedor" data-cat="comedor">🍽 Comedor</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Cantidad</label>
+        <div class="qty-row">
+          <button class="qty-btn" id="btnMenos">−</button>
+          <input type="number" id="inputCantidad" value="1" min="1">
+          <button class="qty-btn" id="btnMas">+</button>
         </div>
       </div>
 
       <div class="field">
         <label>Observaciones (opcional)</label>
-        <textarea id="inputObservaciones" placeholder="Ej: Lote X, vence 12/25, etc."></textarea>
+        <textarea id="inputObservaciones" placeholder="Ej: caja pisada en el traslado, vence 12/09, etc."></textarea>
       </div>
 
-      <button class="btn-guardar" id="btnGuardar">✔ Guardar clasificación</button>
-      <button class="btn-descartar" id="btnDescartar">Descartar</button>
+      <button class="btn btn-success" id="btnConfirmar">✔ Registrar</button>
+      <button class="btn btn-secondary" id="btnDescartar">Descartar</button>
     </div>
 
-    <!-- HISTORIAL DE LA SESIÓN -->
+    <!-- LISTA DE LA SESIÓN -->
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <span class="card-title" style="margin-bottom:0;">📝 Clasificados hoy</span>
-        <span class="badge-count" id="contadorHistorial">0</span>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <strong>Registrado en esta sesión</strong>
+        <span id="totalSesion" style="color:var(--muted); font-size:13px;">0 items</span>
       </div>
-      <div id="historialLista">
-        <div class="historial-vacio">Todavía no clasificaste nada</div>
-      </div>
+      <div id="listaSesion"><div class="empty-state">Todavía no registraste nada</div></div>
     </div>
 
   </div>
 
   <div class="toast" id="toast"></div>
 
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js">
-  </script>
-  <script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+    import {
+      getFirestore, doc, getDoc,
+      collection, query, where, orderBy, limit, getDocs
+    } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
     // ============================================================
-    // CONFIGURACIÓN
+    // CONFIGURACIÓN — completar antes de publicar
     // ============================================================
 
+    // URL del Web App de Apps Script (Implementar > Nueva implementación > Aplicación web).
+    // El backend (Code.gs) ya sabe responder a accion=guardarClasificacion, no se tocó nada ahí.
+    const WEB_APP_URL = "PEGAR_ACA_LA_URL_DE_TU_APPS_SCRIPT_WEB_APP";
+
+    // Mismo proyecto de Firebase que usa la app de conteo de stock (catálogo de solo lectura acá).
     const firebaseConfig = {
       apiKey: "AIzaSyBjsx_gcl2X1yr8SPoi_tF3qGcrFRLK3bQ",
       authDomain: "armador-de-pedidos-secos-119b3.firebaseapp.com",
@@ -726,540 +253,329 @@
       appId: "1:713677759926:web:e0a8f512d79f75f2a5cd17"
     };
 
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz-gKZ3L8ySGrn4TJsQ-7J-zXWbO2vMrtc5b8r20ctrBDR2zSzPBWJq5gGX3b7lsI_q/exec";
-
-    // ============================================================
-    // FIREBASE
-    // ============================================================
-    let db = null;
-    let catalogoCache = {};
-
-    async function initFirebase() {
-      try {
-        const { initializeApp } = await import(
-          "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js"
-        );
-        const { getFirestore, collection, query, where, orderBy, limit, getDocs, doc, getDoc } =
-          await import(
-            "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js"
-          );
-
-        const app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-
-        window.__fb = { collection, query, where, orderBy, limit, getDocs, doc, getDoc };
-        console.log("✅ Firebase inicializado");
-        return true;
-      } catch (err) {
-        console.error("Error:", err);
-        mostrarToast("Error conectando a Firebase", "error");
-        return false;
-      }
+    if (WEB_APP_URL.includes("PEGAR_ACA")) {
+      const w = document.getElementById('configWarning');
+      w.style.display = 'block';
+      w.textContent = '⚠ Falta configurar WEB_APP_URL en el HTML (la URL del Apps Script publicado como Aplicación web). Sin eso, "Registrar" no va a poder guardar en la hoja "Cambios y rotura".';
     }
 
-    // ============================================================
-    // BUSCAR PRODUCTOS POR TEXTO (desde Firebase)
-    // ============================================================
-    async function buscarProductosPorTexto(texto) {
-      texto = texto.trim().toLowerCase();
-      if (texto.length < 2) return [];
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
+    // Esta app NUNCA escribe en Firestore (ni productos ni posiciones/stock).
+    // Solo lee el catálogo para buscar código/nombre. Todo lo que se registra
+    // acá se manda al Apps Script, que lo pega en la hoja "Cambios y rotura".
+
+    let html5QrCode = null;
+    let productoActual = null;
+    let categoriaSeleccionada = null;
+    let sesion = [];
+
+    const productoBox = document.getElementById('productoBox');
+
+    // ---------------- ESCANEO ----------------
+    document.getElementById('btnEscanear').addEventListener('click', iniciarEscaneo);
+    document.getElementById('btnCancelarScan').addEventListener('click', detenerEscaneo);
+
+    function iniciarEscaneo() {
+      document.getElementById('reader').style.display = 'block';
+      document.getElementById('btnCancelarScan').style.display = 'block';
+      document.getElementById('btnEscanear').style.display = 'none';
+      productoBox.classList.remove('show');
+
+      html5QrCode = new Html5Qrcode("reader");
+      const config = {
+        fps: 10,
+        qrbox: { width: 260, height: 140 },
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.UPC_A, Html5QrcodeSupportedFormats.UPC_E,
+          Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.QR_CODE
+        ]
+      };
+      html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
+        .catch(() => { mostrarToast("No se pudo abrir la cámara", true); detenerEscaneo(); });
+    }
+
+    function detenerEscaneo() {
+      if (document.activeElement) document.activeElement.blur();
+      if (html5QrCode) {
+        html5QrCode.stop().then(() => { html5QrCode.clear(); html5QrCode = null; }).catch(() => {});
+      }
+      document.getElementById('reader').style.display = 'none';
+      document.getElementById('btnCancelarScan').style.display = 'none';
+      document.getElementById('btnEscanear').style.display = 'block';
+    }
+
+    function onScanSuccess(codigo) {
+      detenerEscaneo();
+      if (navigator.vibrate) navigator.vibrate(80);
+      buscarProducto(codigo);
+    }
+
+    document.getElementById('btnBuscarManual').addEventListener('click', () => {
+      const codigo = document.getElementById('inputCodigoManual').value.trim();
+      if (!codigo) { mostrarToast("Ingresá un código", true); return; }
+      ocultarSugerencias();
+      buscarProducto(codigo);
+      document.getElementById('inputCodigoManual').value = '';
+    });
+    document.getElementById('inputCodigoManual').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('btnBuscarManual').click();
+    });
+
+    // ---------------- BÚSQUEDA POR NOMBRE (prefijo, Firestore, solo lectura) ----------------
+    let timeoutBusqueda = null;
+    document.getElementById('inputCodigoManual').addEventListener('input', () => {
+      const texto = document.getElementById('inputCodigoManual').value.trim();
+      clearTimeout(timeoutBusqueda);
+      if (texto.length < 2) { ocultarSugerencias(); return; }
+      timeoutBusqueda = setTimeout(() => buscarSugerencias(texto), 250);
+    });
+
+    async function buscarSugerencias(texto) {
+      const textoLower = texto.toLowerCase();
       try {
-        const { collection, query, where, orderBy, limit, getDocs } = window.__fb;
-
-        // Buscar por productoLower (prefijo)
         const q = query(
           collection(db, 'productos'),
-          where('productoLower', '>=', texto),
-          where('productoLower', '<=', texto + '\uf8ff'),
           orderBy('productoLower'),
+          where('productoLower', '>=', textoLower),
+          where('productoLower', '<=', textoLower + '\uf8ff'),
           limit(10)
         );
-
         const snap = await getDocs(q);
         const resultados = [];
-        snap.forEach(doc => {
-          const data = doc.data();
-          resultados.push({
-            codigo: doc.id,
-            producto: data.producto || doc.id
-          });
-        });
-
-        return resultados;
+        snap.forEach(d => resultados.push({ codigo: d.id, producto: d.data().producto }));
+        renderizarSugerencias(resultados);
       } catch (err) {
-        console.error("Error buscando:", err);
-        return [];
+        console.error('Error buscando sugerencias', err);
       }
     }
 
-    // ============================================================
-    // BUSCAR PRODUCTO POR CÓDIGO (exacto)
-    // ============================================================
-    async function buscarProductoPorCodigo(codigo) {
-      codigo = String(codigo).trim();
-      if (!codigo) return null;
+    function renderizarSugerencias(resultados) {
+      const cont = document.getElementById('sugerenciasManual');
+      if (!resultados.length) { ocultarSugerencias(); return; }
+      cont.innerHTML = resultados.map(p => `
+        <div class="sugerencia-item" onmousedown="window.__seleccionarSugerencia('${p.codigo.replace(/'/g, "\\'")}')">
+          <div class="sug-nombre">${escapeHtml(p.producto)}</div>
+          <div class="sug-codigo">${escapeHtml(p.codigo)}</div>
+        </div>
+      `).join('');
+      cont.style.display = 'block';
+    }
 
+    function ocultarSugerencias() {
+      document.getElementById('sugerenciasManual').style.display = 'none';
+    }
+
+    window.__seleccionarSugerencia = function(codigo) {
+      ocultarSugerencias();
+      document.getElementById('inputCodigoManual').value = '';
+      buscarProducto(codigo);
+    };
+
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#inputCodigoManual') && !e.target.closest('#sugerenciasManual')) ocultarSugerencias();
+    });
+
+    // ---------------- BUSCAR PRODUCTO (unidad o bulto) — solo lectura ----------------
+    async function buscarProducto(codigoInput) {
+      const codigo = String(codigoInput).trim();
       try {
-        const { doc, getDoc } = window.__fb;
         const ref = doc(db, 'productos', codigo);
         const snap = await getDoc(ref);
 
         if (snap.exists()) {
           const data = snap.data();
-          return {
-            codigo: codigo,
-            producto: data.producto || codigo,
-            encontrado: true
-          };
-        }
-
-        return {
-          codigo: codigo,
-          producto: null,
-          encontrado: false
-        };
-      } catch (err) {
-        console.error("Error:", err);
-        return {
-          codigo: codigo,
-          producto: null,
-          encontrado: false
-        };
-      }
-    }
-
-    // ============================================================
-    // ESTADO GLOBAL
-    // ============================================================
-    let productoActual = null;
-    let categoriaSeleccionada = null;
-    let historial = [];
-    let html5QrCode = null;
-    let escaneoActivo = false;
-    let timeoutBusqueda = null;
-
-    // ============================================================
-    // REFERENCIAS DOM
-    // ============================================================
-    const inputBusqueda = document.getElementById('inputBusqueda');
-    const btnBuscar = document.getElementById('btnBuscar');
-    const sugerencias = document.getElementById('sugerencias');
-    const btnEscanear = document.getElementById('btnEscanear');
-    const readerContainer = document.getElementById('reader-container');
-    const btnCancelarScan = document.getElementById('btnCancelarScan');
-
-    const resultadoBox = document.getElementById('resultadoBox');
-    const rNombre = document.getElementById('rNombre');
-    const rCodigo = document.getElementById('rCodigo');
-
-    const categoriaBtns = document.querySelectorAll('.categoria-btn');
-    const inputCantidad = document.getElementById('inputCantidad');
-    const btnCantMenos = document.getElementById('btnCantMenos');
-    const btnCantMas = document.getElementById('btnCantMas');
-    const inputObservaciones = document.getElementById('inputObservaciones');
-    const btnGuardar = document.getElementById('btnGuardar');
-    const btnDescartar = document.getElementById('btnDescartar');
-
-    const historialLista = document.getElementById('historialLista');
-    const contadorHistorial = document.getElementById('contadorHistorial');
-    const toast = document.getElementById('toast');
-
-    // ============================================================
-    // AUTOCOMPLETADO EN VIVO
-    // ============================================================
-    inputBusqueda.addEventListener('input', () => {
-      const texto = inputBusqueda.value.trim();
-      clearTimeout(timeoutBusqueda);
-
-      if (texto.length < 2) {
-        ocultarSugerencias();
-        return;
-      }
-
-      timeoutBusqueda = setTimeout(async () => {
-        const resultados = await buscarProductosPorTexto(texto);
-        renderizarSugerencias(resultados);
-      }, 300);
-    });
-
-    inputBusqueda.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        const texto = inputBusqueda.value.trim();
-        if (texto) {
-          ocultarSugerencias();
-          buscarYMostrar(texto);
-        }
-      }
-    });
-
-    btnBuscar.addEventListener('click', () => {
-      const texto = inputBusqueda.value.trim();
-      if (texto) {
-        ocultarSugerencias();
-        buscarYMostrar(texto);
-      }
-    });
-
-    function renderizarSugerencias(resultados) {
-      if (!resultados || !resultados.length) {
-        ocultarSugerencias();
-        return;
-      }
-
-      sugerencias.innerHTML = resultados.map(r => `
-        <div class="sugerencia-item" data-codigo="${escapeHtml(r.codigo)}">
-          <div class="sug-nombre">${escapeHtml(r.producto)}</div>
-          <div class="sug-codigo">${escapeHtml(r.codigo)}</div>
-        </div>
-      `).join('');
-
-      sugerencias.style.display = 'block';
-
-      sugerencias.querySelectorAll('.sugerencia-item').forEach(el => {
-        el.addEventListener('click', () => {
-          const codigo = el.dataset.codigo;
-          ocultarSugerencias();
-          inputBusqueda.value = '';
-          buscarYMostrar(codigo);
-        });
-      });
-    }
-
-    function ocultarSugerencias() {
-      sugerencias.style.display = 'none';
-    }
-
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('#inputBusqueda') && !e.target.closest('#sugerencias')) {
-        ocultarSugerencias();
-      }
-    });
-
-    // ============================================================
-    // BÚSQUEDA PRINCIPAL
-    // ============================================================
-    async function buscarYMostrar(query) {
-      const esCodigo = /^[A-Za-z0-9\-]{4,20}$/.test(query);
-
-      let resultado;
-      if (esCodigo) {
-        resultado = await buscarProductoPorCodigo(query);
-      } else {
-        // Buscar por texto
-        const resultados = await buscarProductosPorTexto(query);
-        if (resultados && resultados.length > 0) {
-          // Tomar el primero
-          const primero = resultados[0];
-          resultado = await buscarProductoPorCodigo(primero.codigo);
-        } else {
-          resultado = {
-            codigo: query,
-            producto: null,
-            encontrado: false
-          };
-        }
-      }
-
-      mostrarResultado(resultado);
-    }
-
-    // ============================================================
-    // MOSTRAR RESULTADO
-    // ============================================================
-    function mostrarResultado(resultado) {
-      productoActual = resultado;
-      categoriaSeleccionada = null;
-
-      categoriaBtns.forEach(b => b.classList.remove('seleccionada'));
-
-      rNombre.textContent = resultado.encontrado ? resultado.producto : '⚠ Producto no encontrado';
-      rNombre.classList.toggle('no-encontrado', !resultado.encontrado);
-      rCodigo.textContent = resultado.codigo;
-
-      inputCantidad.value = 1;
-      inputObservaciones.value = '';
-
-      resultadoBox.classList.add('show');
-      resultadoBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-      btnGuardar.className = 'btn-guardar';
-    }
-
-    // ============================================================
-    // CATEGORÍAS
-    // ============================================================
-    categoriaBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const categoria = btn.dataset.categoria;
-
-        if (categoriaSeleccionada === categoria) {
-          categoriaSeleccionada = null;
-          btn.classList.remove('seleccionada');
-          btnGuardar.className = 'btn-guardar';
+          mostrarProducto({ encontrado: true, esBulto: false, codigo: codigo, producto: data.producto });
           return;
         }
 
-        categoriaBtns.forEach(b => b.classList.remove('seleccionada'));
-        categoriaSeleccionada = categoria;
-        btn.classList.add('seleccionada');
+        // No es un código de unidad conocido: ¿es un código de bulto/caja registrado?
+        const bultoRef = doc(db, 'bultos', codigo);
+        const bultoSnap = await getDoc(bultoRef);
+        if (bultoSnap.exists()) {
+          const b = bultoSnap.data();
+          const baseSnap = await getDoc(doc(db, 'productos', b.codigoBase));
+          const productoNombre = baseSnap.exists() ? baseSnap.data().producto : b.producto;
+          mostrarProducto({
+            encontrado: true, esBulto: true, codigo: b.codigoBase,
+            codigoBultoEscaneado: codigo, producto: productoNombre, unidadesPorBulto: b.unidadesPorBulto
+          });
+          return;
+        }
 
-        btnGuardar.className = 'btn-guardar ' + categoria;
+        // No es ni unidad ni bulto conocido
+        mostrarProducto({ encontrado: false, esBulto: false, codigo: codigo, producto: null });
+      } catch (err) {
+        mostrarToast("Error buscando producto: " + err.message, true);
+      }
+    }
+
+    // ---------------- MOSTRAR PRODUCTO / FORMULARIO ----------------
+    function mostrarProducto(resultado) {
+      productoActual = resultado;
+      categoriaSeleccionada = null;
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('selected'));
+
+      document.getElementById('pCodigo').textContent = resultado.codigo;
+
+      if (resultado.encontrado) {
+        document.getElementById('pNombre').textContent = resultado.producto;
+        document.getElementById('pNombre').classList.remove('no-encontrado');
+        document.getElementById('nombreManualField').style.display = 'none';
+      } else {
+        document.getElementById('pNombre').textContent = '⚠ No encontrado en el catálogo';
+        document.getElementById('pNombre').classList.add('no-encontrado');
+        document.getElementById('nombreManualField').style.display = 'block';
+        document.getElementById('inputNombreManual').value = '';
+      }
+
+      const badge = document.getElementById('pBultoBadge');
+      if (resultado.esBulto) {
+        badge.style.display = 'inline-block';
+        badge.textContent = `📦 Escaneaste una caja/bulto — ${resultado.unidadesPorBulto} unidades c/u de este producto`;
+      } else {
+        badge.style.display = 'none';
+      }
+
+      document.getElementById('inputCantidad').value = 1;
+      document.getElementById('inputObservaciones').value = '';
+
+      productoBox.classList.add('show');
+      productoBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // ---------------- CATEGORÍA ----------------
+    document.querySelectorAll('.cat-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        categoriaSeleccionada = btn.dataset.cat;
       });
     });
 
-    // ============================================================
-    // CANTIDAD
-    // ============================================================
-    btnCantMenos.addEventListener('click', () => {
-      let val = parseInt(inputCantidad.value) || 1;
-      if (val > 1) val--;
-      inputCantidad.value = val;
-    });
+    // ---------------- CANTIDAD ----------------
+    document.getElementById('btnMas').addEventListener('click', () => cambiarCantidad(1));
+    document.getElementById('btnMenos').addEventListener('click', () => cambiarCantidad(-1));
 
-    btnCantMas.addEventListener('click', () => {
-      let val = parseInt(inputCantidad.value) || 1;
-      val++;
-      inputCantidad.value = val;
-    });
-
-    inputCantidad.addEventListener('change', () => {
-      let val = parseInt(inputCantidad.value) || 1;
+    function cambiarCantidad(delta) {
+      const input = document.getElementById('inputCantidad');
+      let val = parseInt(input.value || "1", 10) + delta;
       if (val < 1) val = 1;
-      inputCantidad.value = val;
-    });
+      input.value = val;
+    }
 
-    // ============================================================
-    // GUARDAR CLASIFICACIÓN
-    // ============================================================
-    btnGuardar.addEventListener('click', async () => {
-      if (!productoActual) {
-        mostrarToast('Primero buscá un producto', 'error');
-        return;
+    // ---------------- CONFIRMAR / REGISTRAR ----------------
+    document.getElementById('btnConfirmar').addEventListener('click', confirmarRegistro);
+    document.getElementById('btnDescartar').addEventListener('click', descartarProducto);
+
+    async function confirmarRegistro() {
+      if (!categoriaSeleccionada) { mostrarToast("Elegí una categoría", true); return; }
+      const cantidad = parseInt(document.getElementById('inputCantidad').value, 10);
+      if (!cantidad || cantidad <= 0) { mostrarToast("Cantidad inválida", true); return; }
+
+      let nombreProducto = productoActual.producto;
+      if (!productoActual.encontrado) {
+        nombreProducto = document.getElementById('inputNombreManual').value.trim();
+        if (!nombreProducto) { mostrarToast("Ingresá el nombre del producto", true); return; }
       }
 
-      if (!categoriaSeleccionada) {
-        mostrarToast('Seleccioná una categoría', 'error');
-        return;
-      }
+      const observaciones = document.getElementById('inputObservaciones').value.trim();
+      const codigo = productoActual.codigo;
+      const timestamp = new Date().toISOString();
 
-      const cantidad = parseInt(inputCantidad.value) || 1;
-      if (cantidad < 1) {
-        mostrarToast('Cantidad inválida', 'error');
-        return;
-      }
-
-      const observaciones = inputObservaciones.value.trim();
-
-      const datos = {
-        accion: 'guardarClasificacion',
-        codigo: productoActual.codigo,
-        producto: productoActual.encontrado ? productoActual.producto : 'NO ENCONTRADO',
-        categoria: categoriaSeleccionada,
-        cantidad: cantidad,
-        observaciones: observaciones || '',
-        timestamp: new Date().toISOString()
-      };
-
-      btnGuardar.disabled = true;
-      btnGuardar.textContent = 'Guardando...';
+      const btn = document.getElementById('btnConfirmar');
+      btn.disabled = true;
+      btn.textContent = 'Guardando...';
 
       try {
-        await fetch(APPS_SCRIPT_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(datos)
+        await guardarEnSheets({
+          codigo, producto: nombreProducto, categoria: categoriaSeleccionada,
+          cantidad, observaciones, timestamp
         });
 
-        mostrarToast('✅ Guardado correctamente', 'success');
-
-        agregarAlHistorial({
-          codigo: productoActual.codigo,
-          producto: productoActual.encontrado ? productoActual.producto : 'NO ENCONTRADO',
-          categoria: categoriaSeleccionada,
-          cantidad: cantidad,
-          observaciones: observaciones || ''
+        agregarASesion({
+          codigo, nombre: nombreProducto, categoria: categoriaSeleccionada,
+          cantidad, observaciones, timestamp
         });
 
-        categoriaBtns.forEach(b => b.classList.remove('seleccionada'));
-        categoriaSeleccionada = null;
-        btnGuardar.className = 'btn-guardar';
-        inputCantidad.value = 1;
-        inputObservaciones.value = '';
-
-        setTimeout(() => {
-          resultadoBox.classList.remove('show');
-        }, 800);
-
+        mostrarToast("Registrado ✓");
+        productoBox.classList.remove('show');
       } catch (err) {
-        console.error('Error guardando:', err);
-        mostrarToast('Error guardando: ' + err.message, 'error');
+        mostrarToast("Error guardando: " + err.message, true);
       } finally {
-        btnGuardar.disabled = false;
-        btnGuardar.textContent = '✔ Guardar clasificación';
+        btn.disabled = false;
+        btn.textContent = '✔ Registrar';
       }
-    });
-
-    // ============================================================
-    // HISTORIAL LOCAL
-    // ============================================================
-    function agregarAlHistorial(item) {
-      historial.unshift(item);
-      renderizarHistorial();
     }
 
-    function renderizarHistorial() {
-      contadorHistorial.textContent = historial.length;
+    function descartarProducto() {
+      productoBox.classList.remove('show');
+      productoActual = null;
+    }
 
-      if (historial.length === 0) {
-        historialLista.innerHTML = '<div class="historial-vacio">Todavía no clasificaste nada</div>';
+    // Llama al Apps Script (accion=guardarClasificacion), que ya existe en Code.gs
+    // y pega la fila directo en la hoja "Cambios y rotura". No se modifica el backend.
+    async function guardarEnSheets(payload) {
+      if (WEB_APP_URL.includes("PEGAR_ACA")) {
+        throw new Error("Falta configurar WEB_APP_URL en el HTML");
+      }
+      // Content-Type text/plain evita el preflight CORS que Apps Script no maneja.
+      const res = await fetch(WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ accion: 'guardarClasificacion', ...payload })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'Error desconocido del servidor');
+      return data;
+    }
+
+    const CAT_LABEL = { roto: '💥 Roto', vencido: '⏰ Vencido', cambio: '🔄 Cambio', comedor: '🍽 Comedor' };
+
+    function agregarASesion(item) {
+      sesion.unshift(item);
+      renderSesion();
+    }
+
+    function renderSesion() {
+      const cont = document.getElementById('listaSesion');
+      document.getElementById('totalSesion').textContent = sesion.length + " item" + (sesion.length === 1 ? "" : "s");
+      if (sesion.length === 0) {
+        cont.innerHTML = '<div class="empty-state">Todavía no registraste nada</div>';
         return;
       }
-
-      const etiquetas = {
-        roto: '💔 Roto',
-        vencido: '⏰ Vencido',
-        cambio: '🔄 Cambio',
-        comedor: '🍽️ Comedor'
-      };
-
-      historialLista.innerHTML = historial.map(item => `
-        <div class="historial-item">
-          <div class="h-info">
-            <div class="h-nombre">${escapeHtml(item.producto)}</div>
-            <div class="h-detalle">${escapeHtml(item.codigo)} · ${item.cantidad} u.${item.observaciones ? ' · ' + escapeHtml(item.observaciones) : ''}</div>
+      cont.innerHTML = sesion.map(item => {
+        const hora = new Date(item.timestamp).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+        return `
+        <div class="session-item">
+          <div class="fila-top">
+            <div class="nombre">${escapeHtml(item.nombre)}</div>
+            <div class="cant">x${item.cantidad}</div>
           </div>
-          <span class="h-categoria ${item.categoria}">${etiquetas[item.categoria] || item.categoria}</span>
-        </div>
-      `).join('');
+          <div class="detalle">
+            <span class="badge-cat ${item.categoria}">${CAT_LABEL[item.categoria]}</span>
+            &nbsp;${escapeHtml(item.codigo)} · ${hora}
+            ${item.observaciones ? '<br>📝 ' + escapeHtml(item.observaciones) : ''}
+          </div>
+        </div>`;
+      }).join('');
     }
 
-    // ============================================================
-    // DESCARTAR
-    // ============================================================
-    btnDescartar.addEventListener('click', () => {
-      resultadoBox.classList.remove('show');
-      productoActual = null;
-      categoriaSeleccionada = null;
-      categoriaBtns.forEach(b => b.classList.remove('seleccionada'));
-      btnGuardar.className = 'btn-guardar';
-    });
-
-    // ============================================================
-    // ESCANEO
-    // ============================================================
-    btnEscanear.addEventListener('click', iniciarEscaneo);
-    btnCancelarScan.addEventListener('click', detenerEscaneo);
-
-    async function iniciarEscaneo() {
-      if (escaneoActivo) return;
-
-      try {
-        readerContainer.style.display = 'block';
-        btnCancelarScan.style.display = 'block';
-        btnEscanear.style.display = 'none';
-        escaneoActivo = true;
-
-        html5QrCode = new Html5Qrcode("reader-container");
-        const config = {
-          fps: 10,
-          qrbox: { width: 260, height: 140 },
-          formatsToSupport: [
-            Html5QrcodeSupportedFormats.EAN_13,
-            Html5QrcodeSupportedFormats.EAN_8,
-            Html5QrcodeSupportedFormats.UPC_A,
-            Html5QrcodeSupportedFormats.UPC_E,
-            Html5QrcodeSupportedFormats.CODE_128,
-            Html5QrcodeSupportedFormats.CODE_39,
-            Html5QrcodeSupportedFormats.QR_CODE
-          ]
-        };
-
-        await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
-      } catch (err) {
-        console.error('Error:', err);
-        mostrarToast('No se pudo abrir la cámara', 'error');
-        detenerEscaneo();
-      }
-    }
-
-    function onScanSuccess(codigo) {
-      if (navigator.vibrate) navigator.vibrate(80);
-      detenerEscaneo();
-      buscarYMostrar(codigo);
-    }
-
-    function detenerEscaneo() {
-      escaneoActivo = false;
-      if (html5QrCode) {
-        html5QrCode.stop().then(() => {
-          html5QrCode.clear();
-          html5QrCode = null;
-        }).catch(() => {});
-      }
-      readerContainer.style.display = 'none';
-      btnCancelarScan.style.display = 'none';
-      btnEscanear.style.display = 'flex';
-    }
-
-    // ============================================================
-    // TOAST
-    // ============================================================
-    let timeoutToast = null;
-
-    function mostrarToast(msg, tipo = '') {
-      toast.textContent = msg;
-      toast.className = 'toast';
-      if (tipo) toast.classList.add(tipo);
-      toast.classList.add('show');
-
-      clearTimeout(timeoutToast);
-      timeoutToast = setTimeout(() => {
-        toast.classList.remove('show');
-      }, 3000);
-    }
-
-    // ============================================================
-    // HELPERS
-    // ============================================================
+    // ---------------- HELPERS ----------------
     function escapeHtml(str) {
-      if (!str) return '';
-      return String(str).replace(/[&<>"']/g, s => ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;'
-      } [s]));
+      return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
     }
 
-    // ============================================================
-    // INICIALIZACIÓN
-    // ============================================================
-    (async function init() {
-      await initFirebase();
-
-      try {
-        const guardado = localStorage.getItem('clasificacion_historial');
-        if (guardado) {
-          historial = JSON.parse(guardado);
-          renderizarHistorial();
-        }
-      } catch (e) { /* ignore */ }
-
-      console.log('✅ App lista');
-    })();
-
-    const originalAgregar = agregarAlHistorial;
-    agregarAlHistorial = function(item) {
-      originalAgregar(item);
-      try {
-        localStorage.setItem('clasificacion_historial', JSON.stringify(historial));
-      } catch (e) { /* ignore */ }
-    };
+    function mostrarToast(msg, esError) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.toggle('error', !!esError);
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), esError ? 3500 : 2200);
+    }
   </script>
-
 </body>
 </html>
